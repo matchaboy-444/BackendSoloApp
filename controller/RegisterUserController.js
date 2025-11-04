@@ -5,7 +5,7 @@ export const UserInsert = async (req, res) => {
     
     const salt = await bcrypt.genSalt(10);
 
-    const { username, firstname, middlename, lastname, gender, password, idPhoto } = req.body
+    const { username, firstname, middlename, lastname, gender, password } = req.body
 
     const AlreadyExistData = await userModels.findOne({ username });
 
@@ -26,7 +26,7 @@ export const UserInsert = async (req, res) => {
             gender: gender,
             joinedYear: new Date(),
             password: hashedpassw,
-            idPhoto: idPhoto,
+            idPhoto: 'http://192.168.1.23:4000/uploads/istockphoto-1553217328-612x612.jpg',
 
         })
 

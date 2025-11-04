@@ -23,6 +23,9 @@ export const LogInController = async (req, res) => {
             return res.status(403).json({message: "Forbidden"})
 
         }
+        // if(FindLogIn.active){
+        //     return res.status(409).json({message:"This User Already Logged in"})
+        // }
 
         const isMatched = await bcrypt.compare(password, FindLogIn.password)
 

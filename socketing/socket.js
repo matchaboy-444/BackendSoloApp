@@ -48,6 +48,34 @@ export function socketing(io) {
 
         })
 
+        socket.on('visitprofile', async(id, username) => {
+
+            const finduser = await userModels.findById(id)
+
+            if(!finduser){
+                console.log("notfound")
+            }
+
+            io.emit('visitprofile', finduser);
+
+        })
+
+        socket.on('endlive', async (userid) => {
+
+            const findlive = await LiveModels.findOne({user:userid})
+
+            if(!findlive){
+                console.log("notfound")
+            }
+
+            await LiveModels.deleteOne({_id: findlive._id})
+
+            io.emit("endlive", "sucessful live")
+
+            console.log("deleted live")
+
+        })
+
         socket.on('add-comments', async ({userid, postid, commenttext}) => {
                try{
             
@@ -77,12 +105,15 @@ export function socketing(io) {
 
         })
 
-        socket.on('sololive', async (id, topic) => {
+        socket.on('create-sololive', async ({liveId, id, topic}) => {
+
             try{
                     const FindUserLive = await userModels.findByIdAndUpdate(id, {live: true }, {new: true})
                     if(!FindUserLive){
                         console.log("Fail to make a live")
                     }
+
+                    console.log(FindUserLive);
 
                     const addLive = new LiveModels({
                         user: id,
@@ -93,35 +124,56 @@ export function socketing(io) {
 
                     await addLive.save();
                     console.log(`${FindUserLive.username}, is live`)
-
-                    socket.join(addLive._id.toString())
-
                     io.emit('sololive', addLive._id)
 
-                    console.log(addLive._id)
+                    socket.join(liveId)
+                    console.log(`${FindUserLive.username}, started a live`)
 
             }
             catch(err){
                 console.log(err)
             }
+
         })
 
-        socket.on('ice-candidate', ({candidate}) => {
-            socket.broadcast.emit('ice-candidate', {candidate})
+        
+        socket.on('join-live', async (id) => {
+            const joinlive = await LiveModels.findById(id).populate('user', 'username gender joinedYear idPhoto socketid')
+
+            console.log(joinlive.user.socketid)
+            if(joinlive){
+                console.log("found live", joinlive.topic)
+                socket.join(joinlive.user.socketid)
+                io.to(joinlive.user.socketid).emit('join-live', joinlive)
+            }
+            
         })
 
-        socket.on('offer', (offer) => {
-            // console.log(offer);
-
-            socket.broadcast.emit('offer', offer)
+        socket.on('userjoin', (joinuserid, to) =>{
+            io.to(to).emit('userjoin', joinuserid)
+            console.log(joinuserid)
+            console.log(to)
         })
 
-        socket.on('answer', (answer) => {
+        socket.on('ice-candidate', ({liveId,candidate}) => {
+            socket.to(liveId).emit('ice-candidate', candidate)
+        })
 
-            socket.broadcast.emit('answer', answer)
+        socket.on('offer', ({to, offer})=> {
+            console.log(offer)
+            console.log(to)
+
+            socket.to(to).emit('offer', offer)
+
+        })
+
+        socket.on('answer', ({liveId, answer}) => {
+
+            socket.to(liveId).emit('answer', answer);
         })
 
         socket.on('end-call', async (userid, liveid) => {
+            if(!userid || !liveid)return
             const EndCall = await userModels.findByIdAndUpdate(userid, {live: false }, {new: true})
             if(!EndCall){
                 console.log("not found")
@@ -134,16 +186,6 @@ export function socketing(io) {
 
         })
 
-        socket.on('joinlive', async (id) => {
-            const joinlive = await LiveModels.findById(id).populate('user', 'username idPhoto gender joinedYear sockeid')
-
-            if(joinlive){
-                console.log("found live", joinlive.topic)
-                socket.join(id)
-            io.to(id).emit('joinlive', joinlive)
-            }
-            
-        })
 
         socket.on('livecomments', async ({userid, to, comment, time}) => { 
 
@@ -151,7 +193,16 @@ export function socketing(io) {
 
             const finduser = await userModels.findById(userid)
 
-            io.to(to).emit('livecomments', {userid : finduser, comment: comment, time})
+            console.log(finduser.username)
+
+            console.log(to)
+
+            const send = io.to(to).emit('livecomments', {author : finduser.username, comment: comment, time: time})
+
+            if(!send){
+                console.log("not sent")
+            }
+            console.log(to)
 
         })
 
@@ -173,6 +224,16 @@ export function socketing(io) {
             }, { new: true })
 
             console.log('socket disconnected');
+
+        //       const EndCall = await userModels.findByIdAndUpdate(userid, {live: false }, {new: true})
+        //     if(!EndCall){
+        //         console.log("not found")
+        //     }
+
+        //    const EndedTime =  await LiveModels.findByIdAndUpdate(liveid, {timeEnded: Date.now()}, {new: true})
+        //     if(EndedTime){
+        //         console.log(`ended at, ${EndedTime.timeEnded.toLocaleString()}`)
+        //     }
 
         }
         catch (err) {

@@ -39,6 +39,7 @@ const PORT = process.env.PORT;
 const URL = process.env.MONGO_CONNECTION;
 
 socketing(io)
+console.log("socket connected")
 
 mongoose.connect(URL).then(() => {
     console.log("Database is Connecting")

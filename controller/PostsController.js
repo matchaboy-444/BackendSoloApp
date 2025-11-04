@@ -70,6 +70,7 @@ export const PostUserRead = async (req, res) => {
 
         }
 
+            // console.log(FetchUserPost)
         const totalPosts = await PostModel.countDocuments()
 
         res.status(200).json({ message: "Post User Fetch Successful", userPost: FetchUserPost, total: totalPosts })
@@ -135,7 +136,6 @@ export const SharedPost = async (req, res) => {
 
     const { UserId, PostId, caption } = req.body;
 
-    console.log(file)
 
     try{
         const findPost = await PostModel.findById(PostId);
@@ -156,10 +156,14 @@ export const SharedPost = async (req, res) => {
 
         const sharedpost = await InsertsharedPost.populate(
             [{ path: 'author', select: 'username idPhoto'},
-            { path:'sharedFrom', select: 'content media author'}]
+            { path:'sharedFrom', select: 'content media author', populate: {
+                path: 'author', select: 'username idPhoto',
+            }}]
         )
 
-        res.status(200).json({shared: sharedpost, message: "Failed"})
+        res.status(200).json({shared: sharedpost, message: "sucess"})
+
+        console.log(sharedpost)
 
 
     }
